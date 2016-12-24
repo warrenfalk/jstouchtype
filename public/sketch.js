@@ -183,20 +183,46 @@ function resetProgress(noAttempt) {
 	setProgress(0);
 }
 
-function advanceProgress() {
+function advanceProgress(time) {
 	if (gameState.progress === 0)
 		gameState.levelStartTime = millis();
 	let nextProgress = gameState.progress + 1;
 	if (nextProgress === gameState.challengeText.length) {
-		if (gameState.fail)
+		if (gameState.fail) {
 			resetProgress();
-		else if (gameState.winTime < (millis() - gameState.levelStartTime))
-			resetProgress();
-		else
-			advanceLevel();
+		}
+		else {
+			if (!gameState.myRecord || time < gameState.myRecord)
+				gameState.myRecord = time;
+			saveUserRecordTime("default", time);
+			if (gameState.winTime < (millis() - gameState.levelStartTime))
+				resetProgress();
+			else
+				advanceLevel(time);
+		}
 		return;
 	}
 	setProgress(nextProgress);
+}
+
+function saveUserRecordTime(user, time) {
+	let recordTimes = JSON.parse(localStorage.recordTimes || "{}");
+	let userTimes = recordTimes[user] || {};
+	let key = gameState.challengeText.toLowerCase();
+	let previousRecord = userTimes[key];
+	if (!previousRecord || time < previousRecord) {
+		userTimes[key] = time;
+		recordTimes[user] = userTimes;
+		localStorage.recordTimes = JSON.stringify(recordTimes);
+	}
+}
+
+function getUserRecordTime(user, challengeText) {
+	let recordTimes = JSON.parse(localStorage.recordTimes || "{}");
+	let userTimes = recordTimes[user] || {};
+	let key = gameState.challengeText.toLowerCase();
+	let previousRecord = userTimes[key];
+	return previousRecord;
 }
 
 function gotoLevel(level, attempts) {
@@ -204,10 +230,11 @@ function gotoLevel(level, attempts) {
 	gameState.level = level;
 	gameState.challengeText = getChallengeText(level);
 	gameState.winTime = calcWinTime(gameState.challengeText);
+	gameState.myRecord = getUserRecordTime("default", gameState.challengeText);
 	resetProgress(true);
 }
 
-function advanceLevel() {
+function advanceLevel(time) {
 	let nextLevel = gameState.level + 1;
 	if (nextLevel >= levels.length) {
 		gameState.rank++;
@@ -239,6 +266,11 @@ function draw() {
 
 	image(Images.background, 0, 0, width, height);
 
+	let timeNow = millis();
+	let timeOnCurrentLetter = timeNow - gameState.currentLetterStartTime;
+	let elapsedTime = timeNow - (gameState.levelStartTime || timeNow);
+	let elapsedFraction = Math.min(1.0, elapsedTime / gameState.winTime);
+
 	// process any keys
 	if (keyQueue.length) {
 		keyQueue.forEach(k => {
@@ -253,7 +285,7 @@ function draw() {
 					Sound.click.play(null, null, 0.1);
 				}
 				let level = gameState.level;
-				advanceProgress();
+				advanceProgress(elapsedTime);
 				if (gameState.progress === 0) {
 					if (gameState.level > level) 
 						Sound.success.play(null, null, 0.1);
@@ -275,8 +307,6 @@ function draw() {
 	}
 	keyQueue = [];
 
-	let timeNow = millis();
-	let timeOnCurrentLetter = timeNow - gameState.currentLetterStartTime;
 
 	// split up the challenge text into the letter we expect next
 	// and everything before it (finished)
@@ -337,14 +367,24 @@ function draw() {
 	let progressPosition = finishedTextWidth + nextCharWidth * 0.5;
 	ellipse(cursorX + progressPosition - textShiftLeftX, cursorY, 18);
 
-	// show pace position
+	// show best pace position
 	let paceY = textY + 10 + 18;
-	let elapsedTime = timeNow - (gameState.levelStartTime || timeNow);
-	let elapsedFraction = Math.min(1.0, elapsedTime / gameState.winTime);
-	let pacePosition = beginX + elapsedFraction * (endX - beginX);
-	stroke(255, 255, 0);
-	noFill();
-	ellipse(cursorX + pacePosition - textShiftLeftX, paceY, 15);
+	let bestTime = gameState.myRecord;
+	if (bestTime && !gameState.fail) {
+		let bestFraction = Math.min(1.0, elapsedTime / bestTime);
+		let bestPosition = beginX + bestFraction * (endX - beginX);
+		stroke(0, 100, 255);
+		noFill();
+		ellipse(cursorX + bestPosition - textShiftLeftX, paceY, 15);
+	}
+
+	// show pace position
+	if (!gameState.fail) {
+		let pacePosition = beginX + elapsedFraction * (endX - beginX);
+		stroke(255, 255, 0);
+		noFill();
+		ellipse(cursorX + pacePosition - textShiftLeftX, paceY, 15);
+	}
 
 	if (badKey) {
 		drawKeyboard(1, gameState.nextKey, badKey);

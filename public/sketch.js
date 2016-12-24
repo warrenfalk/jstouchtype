@@ -2,6 +2,7 @@
 
 let Sound;
 let Fonts;
+let Images;
 
 let Keyboard = {
 	KEY_A: 65,
@@ -122,6 +123,9 @@ function preload() {
 		game: loadFont("assets/comfortaa-regular.otf"),
 		status: loadFont("assets/roboto-black.ttf"),
 	}
+	Images = {
+		background: loadImage("assets/dark_spotlight.jpg"),
+	}
 }
 
 function setup() {
@@ -233,6 +237,8 @@ function draw() {
 	if (!gameState)
 		initializeGameState();
 
+	image(Images.background, 0, 0, width, height);
+
 	// process any keys
 	if (keyQueue.length) {
 		keyQueue.forEach(k => {
@@ -272,8 +278,6 @@ function draw() {
 	let timeNow = millis();
 	let timeOnCurrentLetter = timeNow - gameState.currentLetterStartTime;
 
-	background(180);
-
 	// split up the challenge text into the letter we expect next
 	// and everything before it (finished)
 	// and everything after it (remaining)
@@ -310,13 +314,13 @@ function draw() {
 	// Now we draw the text
 	noStroke();
 	// We draw it in three parts so we can use three different colors
-	fill(230, 230, 230);
+	fill(230, 230, 230, 50);
 	letters(finishedText, cursorX - textShiftLeftX, textY);
 
 	fill(255, 0, 0);
 	letters(gameState.nextChar, cursorX + finishedTextWidth - textShiftLeftX, textY);
 
-	fill(0, 0, 0);
+	fill(230, 230, 230);
 	letters(remainText, cursorX + finishedTextWidth + nextCharWidth - textShiftLeftX, textY);
 
 	// show current position
@@ -408,6 +412,8 @@ function drawKeyboard(alpha, hintKey) {
 	// draw every key
 	keys.forEach(key => {
 		let keyAlpha = keyIsDown(key.key) ? 1.0 : 0.2;
+		strokeWeight(1)
+		stroke(255, 255, 255, 100)
 		fill(0, 77, 230, keyAlpha * alpha * 255);
 		let x = kbcenter.x + key.x * keyHorizPeriod;
 		let y = kbcenter.y + key.y * keyVertPeriod;

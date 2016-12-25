@@ -144,14 +144,17 @@ let height;
 let cursorX;
 let textY;
 let textHeight;
-
+let background;
 
 function calcSizes() {
 	width = window.innerWidth;
 	height = window.innerHeight;
+	let size = Math.min(width, height);
 	cursorX = Math.ceil(width * 0.1);
-	textHeight = Math.ceil(height * 0.1);
+	textHeight = Math.ceil(size * 0.1);
 	textY = Math.ceil(height * 0.4 + textHeight * 0.5);
+	background = createGraphics(width, height);
+	background.image(Images.background, 0, 0, width, height);
 }
 
 let challenges;
@@ -264,7 +267,8 @@ function draw() {
 	if (!gameState)
 		initializeGameState();
 
-	image(Images.background, 0, 0, width, height);
+	//background(151);
+	image(background, 0, 0, width, height);
 
 	let timeNow = millis();
 	let timeOnCurrentLetter = timeNow - gameState.currentLetterStartTime;
@@ -339,12 +343,12 @@ function draw() {
 	// and so as it gets closer (the distance grows smaller) it moves slower
 	// This is called an "ease out" animation
 	let difference = actualProgressX - textShiftLeftX;
-	textShiftLeftX = textShiftLeftX + (difference * 0.07);
+	textShiftLeftX = textShiftLeftX + (difference * 0.1);
 
 	// Now we draw the text
 	noStroke();
 	// We draw it in three parts so we can use three different colors
-	fill(230, 230, 230, 50);
+	fill(50, 50, 50);
 	letters(finishedText, cursorX - textShiftLeftX, textY);
 
 	fill(255, 0, 0);

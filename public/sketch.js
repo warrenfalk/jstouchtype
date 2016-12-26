@@ -261,8 +261,10 @@ function advanceLevel(time) {
 }
 
 function failLevel() {
-	gameState.fail = true;
-	saveProgress();
+	if (!gameState.fail) {
+		gameState.fail = true;
+		saveProgress();
+	}
 }
 
 let loadingState;
@@ -396,7 +398,7 @@ function draw() {
 	if (bestTime && !gameState.fail) {
 		let bestFraction = Math.min(1.0, elapsedTime / bestTime);
 		let bestPosition = beginX + bestFraction * (endX - beginX);
-		stroke(0, 100, 255);
+		stroke(120, 120, 120);
 		noFill();
 		ellipse(cursorX + bestPosition - textShiftLeftX, paceY, 15);
 	}

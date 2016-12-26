@@ -4,6 +4,10 @@ let Sound;
 let Fonts;
 let Images;
 
+let user = localStorage.touchtypeUser;
+if (!user)
+	window.location.href = "./user.html";
+
 let Keyboard = {
 	KEY_A: 65,
 	KEY_B: 66,
@@ -197,7 +201,7 @@ function advanceProgress(time) {
 		else {
 			if (!gameState.myRecord || time < gameState.myRecord)
 				gameState.myRecord = time;
-			saveUserRecordTime("default", time);
+			saveUserRecordTime(user, time);
 			if (gameState.winTime < (millis() - gameState.levelStartTime))
 				resetProgress();
 			else
@@ -208,24 +212,33 @@ function advanceProgress(time) {
 	setProgress(nextProgress);
 }
 
-function saveUserRecordTime(user, time) {
-	let recordTimes = JSON.parse(localStorage.recordTimes || "{}");
-	let userTimes = recordTimes[user] || {};
-	let key = gameState.challengeText.toLowerCase();
-	let previousRecord = userTimes[key];
-	if (!previousRecord || time < previousRecord) {
-		userTimes[key] = time;
-		recordTimes[user] = userTimes;
-		localStorage.recordTimes = JSON.stringify(recordTimes);
+function saveUserRecordTime(forUser, time) {
+	if (!forUser)
+		forUser = user;
+	const challenge = gameState.challengeText.toLowerCase();
+	let data = {
+		user: user,
+		challenge: challenge,
+		time: time,
 	}
+	console.log('saving time', data);
+	apiPost('./api/save-time', data, () => {console.log('time saved')});
 }
 
-function getUserRecordTime(user, challengeText) {
-	let recordTimes = JSON.parse(localStorage.recordTimes || "{}");
-	let userTimes = recordTimes[user] || {};
-	let key = gameState.challengeText.toLowerCase();
-	let previousRecord = userTimes[key];
-	return previousRecord;
+function getUserRecordTime(forUser, challengeText) {
+	if (!forUser)
+		forUser = user;
+	let challenge = gameState.challengeText.toLowerCase();
+	delete gameState.myRecord;
+	console.log('getting record for', forUser);
+	apiPost('./api/get-records', {user: forUser, challenge: challenge}, (err, responseText) => {
+		let response = JSON.parse(responseText)
+		let userRecord = response[forUser];
+		console.log('record is', userRecord, response);
+		if (userRecord && challenge == gameState.challengeText.toLowerCase()) {
+			gameState.myRecord = userRecord;
+		}
+	})
 }
 
 function gotoLevel(level, attempts) {
@@ -233,7 +246,7 @@ function gotoLevel(level, attempts) {
 	gameState.level = level;
 	gameState.challengeText = getChallengeText(level);
 	gameState.winTime = calcWinTime(gameState.challengeText);
-	gameState.myRecord = getUserRecordTime("default", gameState.challengeText);
+		getUserRecordTime(user, gameState.challengeText);
 	resetProgress(true);
 }
 
@@ -252,23 +265,29 @@ function failLevel() {
 	saveProgress();
 }
 
+let loadingState;
 function initializeGameState() {
-	let saved = loadProgress("default");
-	gameState = {}
-	gameState.rank = saved.rank;
-	gotoLevel(saved.level, saved.attempts);
+	loadingState = "loading";
+	loadProgress(user, (err, saved) => {
+		gameState = {}
+		gameState.rank = saved.rank;
+		gotoLevel(saved.level, saved.attempts);
+		loadingState = "loaded";
+	});
 }
-
-
-
 
 let badKey = false;
 function draw() {
-	if (!gameState)
-		initializeGameState();
-
 	//background(151);
 	image(background, 0, 0, width, height);
+
+	if (!loadingState) {
+		initializeGameState();
+		return;
+	}
+	if (loadingState === "loading") {
+		return;
+	}
 
 	let timeNow = millis();
 	let timeOnCurrentLetter = timeNow - gameState.currentLetterStartTime;
@@ -529,26 +548,46 @@ function keyPressed() {
 	keyQueue.push(keyCode);
 }
 
-function loadProgress(user) {
-	let saves = (localStorage.saves && JSON.parse(localStorage.saves)) || {};
-	let save = Object.assign({}, {
-		level: 0,
-		attempts: 0,
-		rank: 0,
-	}, saves[user]);
-	return save;
+function loadProgress(forUser, callback) {
+	if (!forUser)
+		forUser = user;
+	apiPost('./api/load-progress', {user: forUser}, (err, response) => {
+		let data = JSON.parse(response);
+		let save = Object.assign({}, {
+			level: 0,
+			attempts: 0,
+			rank: 0,
+		}, data);
+		callback(null, save);
+	})
 }
 
-function saveProgress(user) {
-	if (!user)
-		user = "default";
-	let saves = (localStorage.saves && JSON.parse(localStorage.saves)) || {};
-	saves[user] = {
+function saveProgress(forUser) {
+	if (!forUser)
+		forUser = user;
+	let saveData = {
+		user: forUser,
 		level: gameState.level,
 		attempts: gameState.attempts,
 		rank: gameState.rank || 0,
-	}
-	localStorage.saves = JSON.stringify(saves);
+	};
+	console.log("saving...");
+	gameState.saving = true;
+	apiPost("./api/save-progress", saveData, () => {
+		console.log("done");
+		gameState.saving = false;
+	})
+}
+
+function apiPost(path, data, callback) {
+	var xhr = new XMLHttpRequest();
+	xhr.open("POST", path, true);
+	xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+	xhr.send(JSON.stringify(data));
+	xhr.onloadend = function () {
+		let response = xhr.responseText;
+		callback(null, response);
+	};
 }
 
 function calcWinTime(challengeText) {

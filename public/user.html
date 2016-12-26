@@ -1,0 +1,62 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- uncomment lines below to include extra p5 libraries -->
+    <!--<script language="javascript" src="libraries/p5.dom.js"></script>-->
+    <!-- this line removes any default padding and style. you might only need one of these values set. -->
+    <style> body {padding: 0; margin: 0;} </style>
+    <style>
+        .page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .login {
+            border: solid 1px gray;
+            border-radius: 8px;
+            padding: 15px 60px;
+            display: flex;
+            flex-direction: column;
+        }
+        .login > * {
+            margin: 8px;
+        }
+        .login input {
+            width: 240px;
+            height: 36px;
+            padding: 5px;
+        }
+        .login button {
+            padding: 15px;
+        }
+        .buttons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            font-size: 20px;
+            font-family: sans-serif;
+        }
+    </style>
+    <script>
+        function didClickLogin(e) {
+            
+        }
+    </script>
+</head>
+
+<body>
+    <div class="page">
+        <div class="login">
+            <h1>Touchtype Login</h1>
+           <input class="username" type="text" placeholder="User Name"/>
+            <input class="password" type="password" placeholder="Password"/>
+            <div class="buttons">
+                <button onclick="">Login</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -125,7 +125,7 @@ function preload() {
 	}
 	Fonts = {
 		game: loadFont("assets/comfortaa-regular.otf"),
-		status: loadFont("assets/roboto-black.ttf"),
+		status: loadFont("assets/roboto-regular.ttf"),
 	}
 	Images = {
 		background: loadImage("assets/dark_spotlight.jpg"),
@@ -230,9 +230,11 @@ function getUserRecordTime(forUser, challengeText) {
 		forUser = user;
 	let challenge = gameState.challengeText.toLowerCase();
 	delete gameState.myRecord;
+	delete gameState.gameRecord;
 	console.log('getting record for', forUser);
 	apiPost('./api/get-records', {user: forUser, challenge: challenge}, (err, responseText) => {
 		let response = JSON.parse(responseText)
+		gameState.gameRecord = response.record;
 		let userRecord = response[forUser];
 		console.log('record is', userRecord, response);
 		if (userRecord && challenge == gameState.challengeText.toLowerCase()) {
@@ -394,14 +396,25 @@ function draw() {
 
 	// show best pace position
 	let paceY = textY + 10 + 18;
-	let bestTime = gameState.myRecord;
-	if (bestTime && !gameState.fail) {
-		let bestFraction = Math.min(1.0, elapsedTime / bestTime);
+
+	let gameBest = gameState.gameRecord && gameState.gameRecord.time;
+	if (gameBest) {
+		let bestFraction = Math.min(1.0, elapsedTime / gameBest);
+		let bestPosition = beginX + bestFraction * (endX - beginX);
+		stroke(0, 90, 255);
+		noFill();
+		ellipse(cursorX + bestPosition - textShiftLeftX, paceY, 15);
+	}
+
+	let myBest = gameState.myRecord;
+	if (myBest && myBest < gameBest) {
+		let bestFraction = Math.min(1.0, elapsedTime / myBest);
 		let bestPosition = beginX + bestFraction * (endX - beginX);
 		stroke(120, 120, 120);
 		noFill();
 		ellipse(cursorX + bestPosition - textShiftLeftX, paceY, 15);
 	}
+
 
 	// show pace position
 	if (!gameState.fail) {
@@ -429,7 +442,9 @@ function draw() {
 	fill(100, 100, 100);
 	text("Level", 120, 33);
 	text("Attempts", 240, 33);
-	text("Rank", 360, 33);
+	text("Rank", 390, 33);
+	if (gameState.gameRecord && gameState.gameRecord.time)
+		text("Record", 600, 33);
 	
 	stroke(0, 128, 0);
 	strokeWeight(1);
@@ -437,7 +452,15 @@ function draw() {
 	textSize(24);
 	text(gameState.level, 180, 35);
 	text(gameState.attempts, 330, 35);
-	text(ranks[gameState.rank].name, 420, 35);
+	text(ranks[gameState.rank].name, 450, 35);
+	if (gameState.gameRecord && gameState.gameRecord.time) {
+		noStroke();
+		fill(20, 120, 255)
+		let words = gameState.challengeText.length * 0.2;
+		let minutes = gameState.gameRecord.time / 1000 / 60;
+		let wpm = Math.round(words * 100 / minutes) / 100;
+		text(wpm + " wpm by " + gameState.gameRecord.user, 680, 35);
+	}
 
 
 	//text(finishedText, idealX - finishedTextWidth, 300);

@@ -122,6 +122,7 @@ function preload() {
 		click: loadSound('assets/click.mp3'),
 		click2: loadSound('assets/click2.mp3'),
 		success: loadSound('assets/success.mp3'),
+		applause: loadSound('assets/applause.mp3'),
 	}
 	Fonts = {
 		game: loadFont("assets/comfortaa-regular.otf"),
@@ -190,6 +191,11 @@ function resetProgress(noAttempt) {
 	setProgress(0);
 }
 
+let messages = [];
+function showMessage(message) {
+	messages.unshift({message: message, expire: millis() + 2000})
+}
+
 function advanceProgress(time) {
 	if (gameState.progress === 0)
 		gameState.levelStartTime = millis();
@@ -199,6 +205,16 @@ function advanceProgress(time) {
 			resetProgress();
 		}
 		else {
+			// if this is a new record, play cheers
+			if (time && (!gameState.gameRecord || !gameState.gameRecord.time || time < gameState.gameRecord.time)) {
+				// only play it if there was an old record to beat
+				if (gameState.gameRecord && gameState.gameRecord.time) {
+					Sound.applause.play(null, null, 0.3);
+					let wpm = calcWpm(gameState.challengeText, time);
+					showMessage("New record: " + wpm + " wpm!");
+				}
+				gameState.gameRecord = {time: time, user: user}
+			}
 			if (!gameState.myRecord || time < gameState.myRecord)
 				gameState.myRecord = time;
 			saveUserRecordTime(user, time);
@@ -456,10 +472,30 @@ function draw() {
 	if (gameState.gameRecord && gameState.gameRecord.time) {
 		noStroke();
 		fill(20, 120, 255)
-		let words = gameState.challengeText.length * 0.2;
-		let minutes = gameState.gameRecord.time / 1000 / 60;
-		let wpm = Math.round(words * 100 / minutes) / 100;
+		let wpm = calcWpm(gameState.challengeText, gameState.gameRecord.time)
 		text(wpm + " wpm by " + gameState.gameRecord.user, 680, 35);
+	}
+
+	if (messages.length) {
+		let messageY = height * 0.15;
+		let messageHeight = height * 0.0275;
+		textSize(messageHeight);
+		textFont(Fonts.status);
+		for (let i = 0; i < messages.length; i++) {
+			let message = messages[i].message;
+			let timeLeft = messages[i].expire - timeNow;
+			if (timeLeft < 0)
+				continue;
+			let messageWidth = textWidth(message);
+			let messageX = width * 0.5 - messageWidth * 0.5;
+			let alpha = Math.min(timeLeft, 400) * (1/400);
+			noStroke();
+			fill(255, 255, 255, alpha * 255);
+			text(message, messageX, messageY);
+			messageY += messageHeight;
+		}
+		while (messages.length && messages[messages.length - 1].expire < timeNow)
+			messages.pop();
 	}
 
 
@@ -470,6 +506,13 @@ function draw() {
 	//show("elapsedTime", elapsedTime);
 	//show("winTime", gameState.winTime)
 	showAll();
+}
+
+function calcWpm(text, time) {
+	let words = text.length * 0.2;
+	let minutes = time / 1000 / 60;
+	let wpm = Math.round(words * 100 / minutes) / 100;
+	return wpm;
 }
 
 let fingerHomes = [

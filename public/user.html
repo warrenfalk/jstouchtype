@@ -13,7 +13,8 @@
             height: 100%;
         }
         .login {
-            border: solid 1px gray;
+            background-color: #dcdfe4;
+            border: solid 1px #acb1bd;
             border-radius: 8px;
             padding: 15px 60px;
             display: flex;
@@ -26,9 +27,15 @@
             width: 240px;
             height: 36px;
             padding: 5px;
+            border: solid 1px gray;
         }
         .login button {
-            padding: 15px;
+            padding: 11px 20px;
+            background-color: #7890bf;
+            color: white;
+            font-size: 15px;
+            border: none;
+            box-shadow: 3px 3px 3px rgba(0,0,0,0.5);
         }
         .buttons {
             display: flex;
@@ -42,19 +49,93 @@
     </style>
     <script>
         function didClickLogin(e) {
-            
+            doLogin();
+        }
+        function didPressKey(e) {
+            if (e.keyCode === 13) {
+                doLogin();
+            }
+        }
+        let typedPw;
+        let mode = "login";
+        function finishLogin(username) {
+            localStorage.touchtypeUser = username;
+            window.location.href = "./";
+        }
+        function reset() {
+            let usernameBox = document.getElementById('username');
+            let passwordBox = document.getElementById('password');
+            passwordBox.value = "";
+            usernameBox.style.display = "inherit";
+            passwordBox.focus();
+            mode = "login";
+        }
+        function doLogin() {
+            let passwordBox = document.getElementById('password');
+            let usernameBox = document.getElementById('username');
+            let username = usernameBox.value;
+            if (mode == "confirm") {
+                let password = passwordBox.value;
+                if (password == typedPw) {
+                    apiPost("./api/create-user", {username, password}, (err, responseText) => {
+                        let response = JSON.parse(responseText);
+                        if (response.status == "success") {
+                            finishLogin(response.username)
+                        }
+                        else {
+                            reset();
+                        }
+                    })
+                }
+                else {
+                    passwordBox.value = "";
+                }
+            }
+            else {
+                let password = typedPw = passwordBox.value;
+                apiPost("./api/check-login", {username, password}, (err, responseText) => {
+                    let response = JSON.parse(responseText);
+                    if (response.status == "success") {
+                        finishLogin(response.username || username);
+                    }
+                    else if (response.status == "badpw") {
+                        passwordBox.value = "";
+                        passwordBox.focus();
+                    }
+                    else if (response.status == "error") {
+                        console.log(response);
+                    }
+                    else if (response.status == "confirm") {
+                        passwordBox.value = "";
+                        passwordBox.focus();
+                        passwordBox.placeholder = "Confirm Password";
+                        usernameBox.style.display = "none";
+                        mode = "confirm";
+                    }
+                });
+            }
+        }
+        function apiPost(path, data, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", path, true);
+            xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            xhr.send(JSON.stringify(data));
+            xhr.onloadend = function () {
+                let response = xhr.responseText;
+                callback(null, response);
+            };
         }
     </script>
 </head>
 
 <body>
     <div class="page">
-        <div class="login">
+        <div class="login" onkeypress="return didPressKey(event)">
             <h1>Touchtype Login</h1>
-           <input class="username" type="text" placeholder="User Name"/>
-            <input class="password" type="password" placeholder="Password"/>
+            <input id="username" type="text" placeholder="User Name"/>
+            <input id="password" type="password" placeholder="Password"/>
             <div class="buttons">
-                <button onclick="">Login</button>
+                <button onclick="return didClickLogin(event)">Login</button>
             </div>
         </div>
     </div>

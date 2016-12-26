@@ -1,6 +1,7 @@
 "use strict"
 const path = require('path');
 const Datastore = require('nedb');
+const sha1 = require('sha1');
 
 let db;
 
@@ -53,17 +54,52 @@ const api = {
 	},
 	'/get-records': (req, res) => {
 		const { user, challenge } = req.body;
+		// first get this user's record (if any)
 		db.findOne(
 			{ forUser: user, challenge: challenge },
 			(err, doc) => {
+				let response = {}
 				if (doc)
-					res.send(JSON.stringify({[user]: doc.time}));
-				else
-					res.send("{}");
-				res.end();
+					response[user] = doc.time;
+				// then find the all time record
+				db.find({challenge: challenge}).sort({time: 1}).limit(1).exec((err, docs) => {
+					if (docs && docs.length)
+						response.record = {time: docs[0].time, user: docs[0].forUser};
+					res.send(JSON.stringify(response));
+					res.end();
+				})
 			}
 		)
 	},
+	'/check-login': (req, res) => {
+		const { username, password } = req.body;
+		db.findOne({ username }, (err, doc) => {
+			if (!doc) {
+				res.send(JSON.stringify({status: "confirm", username: username}));
+			}
+			else {
+				let hash = sha1(password + '|' + username);
+				if (hash === doc.hash)
+					res.send(JSON.stringify({status: "success", username: username}));
+				else
+					res.send(JSON.stringify({status: "badpw", username: username}))
+			}
+			res.end();
+		})
+	},
+	'/create-user': (req, res) => {
+		const { username, password } = req.body;
+		let hash = sha1(password + '|' + username);
+		db.insert({username: username, hash: hash}, (err, doc) => {
+			if (!err) {
+				res.send(JSON.stringify({status: "success", username: username}));			
+			}
+			else {
+				res.send(JSON.stringify({status: "error", error: err}));
+			}
+			res.end();
+		});
+	}
 }
 
 module.exports = function({express, app}) {

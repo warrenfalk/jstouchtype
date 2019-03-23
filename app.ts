@@ -1,13 +1,14 @@
 import * as bodyParser from "body-parser";
 import * as cookieParser from "cookie-parser";
-import { default as express, NextFunction, Request, Response } from "express";
+import * as express from "express";
 // TODO: maybe import favicon from 'serve-favicon';
 import * as logger from "morgan";
-import * as path from "path";
+import {join} from "path";
 
-import * as api from "./api";
+import {api} from "./api";
+import { request } from "http";
 
-const app = express();
+const app: express.Express = express();
 
 // TODO: Uncomment after placing your favicon in /public
 // TODO: app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -15,9 +16,9 @@ app.use(logger("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(join(__dirname, "public")));
 
-api({express, app});
+api(app);
 
 type AppError = Error & {
   /** Returns any http status code associated with this error */
@@ -28,6 +29,10 @@ const httpStatus: {[name: string]: number} = {
   INTERNAL_ERROR: 500,
   NOT_FOUND: 404,
 };
+
+type Request = express.Request
+type Response = express.Response
+type NextFunction = express.NextFunction
 
 // Catch 404 and forward to error handler
 app.use((req: Request, res: Response, next: NextFunction) => {

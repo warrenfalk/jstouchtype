@@ -5,6 +5,8 @@
         // it is better to let a variable be whatever it is, unless you mean to assert that it has to be a particular type
         "typedef": false,
         // basically, until there's a more convenient way to do option-chaining, this is just too inconvenient
-        "strict-boolean-expressions": false
+        "strict-boolean-expressions": false,
+        // see: https://github.com/palantir/tslint/issues/3248
+        "interface-over-type-literal": false,
     }
 }

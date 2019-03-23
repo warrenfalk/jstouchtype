@@ -113,7 +113,7 @@ module.exports = function({express, app}) {
 		console.log("Database load:", err);
 	})
 
-	app.use('/jstouchtype/api', function(req, res, next) {
+	app.use('/api', function(req, res, next) {
 		const handler = api[req.path];
 		if (!handler)
 			next();
@@ -127,5 +127,5 @@ module.exports = function({express, app}) {
 		}
 	})
 
-	app.use('/jstouchtype/', express.static(path.join(__dirname, 'public')));
+	//app.use('/jstouchtype/', express.static(path.join(__dirname, 'public')));
 }

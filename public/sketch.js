@@ -553,18 +553,26 @@ function drawKeyboard(alpha, hintKey) {
 		rect(x - w * 0.5, y - keyHeight * 0.5, w, keyHeight, 3);
 	})
 
+	// draw a circle for each finger
 	for (let i = 0; i < 9; i++) {
+		// calculate the home position for this finger
 		let h = fingerHomes[i];
 		let hx = kbcenter.x + h.x * keyHorizPeriod;
 		let hy = kbcenter.y + h.y * keyVertPeriod;
 		if (hintKey.finger !== i) {
+			// if this isn't the finger we're currently giving a hint for
+			// then draw it on its home key in black
 			fill(0, 0, 0, alpha * 255);
 			ellipse(hx, hy, keyWidth - 5);
 		}
 		else {
+			// this is the finger we're giving the hint for
+			// find the location of the key it needs to go on
 			let fx = kbcenter.x + hintKey.x * keyHorizPeriod;
 			let fy = kbcenter.y + hintKey.y * keyVertPeriod;
 			if (hx !== fx || hy !== fy) {
+				// if it isn't in its home position, then draw a line from the home position
+				// to where it needs to be
 				strokeWeight(3);
 				stroke(255, 0, 0, alpha * 255);
 				line(hx, hy, fx, fy);
